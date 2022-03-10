@@ -1,4 +1,4 @@
 Parser/old_versions
 Parser/test*.py
 .vscode
-utils/*
+utils/myfile.html
