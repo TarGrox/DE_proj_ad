@@ -10,6 +10,7 @@ import requests
 # https://www.lamoda.ru/c/513/clothes-muzhskie-d-insy/?sitelink=topmenuM&l=7
 
 # сделать async/await -> подавать кусками в Парсер через трансформацию в file-like object
+lamoda_link = 'https://www.lamoda.ru'
 r = requests.get('https://www.lamoda.ru/c/513/clothes-muzhskie-d-insy/')
 print(r.status_code)
 
@@ -31,4 +32,5 @@ print(links_of_product)
 
 for link in links_of_product:
     # r = requests.get('https://www.lamoda.ru' + link)
-    print('https://www.lamoda.ru' + link)
+    print(lamoda_link + link)
+    

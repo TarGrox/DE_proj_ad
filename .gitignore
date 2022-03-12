@@ -1,4 +1,5 @@
 Parser/old_versions
 Parser/test*.py
 .vscode
-utils/myfile.html
+utils/musor/*
+# utils/musor/*.json
