@@ -48,7 +48,19 @@ class GetHtml():
 
 class CollectReviews():
     def get_reviews(self, link):
+        pass    
+
+class Formatter():
+    def __init__(self):
         pass
+    
+    @classmethod
+    def from_js_to_dict(self, script):
+        mark_product = script.find('"product":{')
+        mark_comments_data = script.find('"comments_data":{')
+        inf = script[mark_product+len('"product":{')-1:mark_comments_data-1]
+        
+        return json.loads(inf)
 
 # ========================================
 # Обработка страницы продукта:
@@ -62,5 +74,5 @@ for link in links_of_product:
     page = Gh.get_html(Pr.La_link + link)
     print(Pr.La_link + link)
     inf = Pr.extract_inf_from_js(page)
-    print(inf)
-    1+1
+    
+    
