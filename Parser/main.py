@@ -9,13 +9,11 @@ import requests
 
 # https://www.lamoda.ru/p/rtlabb019901/clothes-hebymango-dzhinsy/
 
-class Parser():
+class ParserCategory():
     def __init__(self):
-        #? Ссылку La_link подавать с '/' в конце?
         #? .collect_links, если что, возвращает ссылки с '/' в начале
         self.La_link = 'https://www.lamoda.ru'
         self.xpath_to_collect_links = '//a[@class="x-product-card__link x-product-card__hit-area"]/@href'
-        self.xpath_to_collect_js = '//body/script[not(@id) and not(@class) and not(@crossorigin) and not(@type) and not(@src)]'
     
     def collect_links(self, link):
         page = GetHtml.get_html(link)
@@ -23,17 +21,24 @@ class Parser():
         print('success')
         return links_of_product
     
+    def get_next_link(link):
+        #TODO: определить в каком виде получать и передавать дальше ссылку
+        pass
+
+class ParserProductPage():
+    def __init__(self):
+        #? Ссылку La_link подавать с '/' в конце?
+        self.La_link = 'https://www.lamoda.ru'
+        self.xpath_to_collect_js = '//body/script[not(@id) and not(@class) and not(@crossorigin) and not(@type) and not(@src)]'
+    
     def extract_inf_from_js(self, page):
         # поиск всех <script> без каких-либо тегов
         # нужный нам <script> первый
         inf = page.xpath(self.xpath_to_collect_js)
         return inf[0].text
     
-    def get_next_link(link):
-        #TODO: определить в каком виде получать и передавать дальше ссылку
+    def get_another_product():
         pass
-
-
 class GetHtml():
     def __init__(self):
         pass
@@ -71,15 +76,19 @@ class Formatter():
 # ========================================
 # Обработка страницы продукта:
 
-Pr = Parser()
+PrC = ParserCategory()
+PrPP = ParserProductPage()
 Gh = GetHtml()
-links_of_product = Pr.collect_links('https://www.lamoda.ru/c/517/clothes-muzhskie-bryuki/')
+links_of_product = PrC.collect_links('https://www.lamoda.ru/c/517/clothes-muzhskie-bryuki/')
 # print(links_of_product)
 
 for link in links_of_product:
-    page = Gh.get_html(Pr.La_link + link)
-    print(Pr.La_link + link)
-    raw_inf = Pr.extract_inf_from_js(page)
+    page = Gh.get_html(PrPP.La_link + link)
+    print(PrPP.La_link + link)
+    raw_inf = PrPP.extract_inf_from_js(page)
     
     inf_json =  Formatter.from_js_to_json(raw_inf)
+    # print(inf_json)
+    # прямо сейчас необходимо собрать все дополнительные варианты с одной странице.
+    # некоторые страницы хранят два варианта расцветки, например
     1+1
