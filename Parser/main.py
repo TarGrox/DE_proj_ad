@@ -25,6 +25,7 @@ class Parser():
     
     def extract_inf_from_js(self, page):
         # поиск всех <script> без каких-либо тегов
+        # нужный нам <script> первый
         inf = page.xpath(self.xpath_to_collect_js)
         return inf[0].text
     
@@ -38,7 +39,7 @@ class GetHtml():
         pass
     
     #* Обрати внимание, что можно поставить @classmethod, а можно 
-    #* добавить (), а конкретнее: GetHtml().get_html(link) - и работать будет
+    #* добавить () {пример: GetHtml().get_html(link)} - и работать будет
     @classmethod
     def get_html(self, link):
         r = requests.get(link)
@@ -55,7 +56,12 @@ class Formatter():
         pass
     
     @classmethod
-    def from_js_to_dict(self, script):
+    def from_js_to_json(self, script):
+        #* необходимо привести JS <script> к удобоваримому виду - если выкинуть явные куски JS кода,
+        #* то можно преобразовать оставшееся в json без ошибок.
+        #* Работаем с <script> как с текстом, находим нужный кусок информации через .find - он содержит вид dict.
+        #* Оставляем только непосредственную информацию по продукту - размер, цвет и тд.
+        
         mark_product = script.find('"product":{')
         mark_comments_data = script.find('"comments_data":{')
         inf = script[mark_product+len('"product":{')-1:mark_comments_data-1]
@@ -73,6 +79,7 @@ links_of_product = Pr.collect_links('https://www.lamoda.ru/c/517/clothes-muzhski
 for link in links_of_product:
     page = Gh.get_html(Pr.La_link + link)
     print(Pr.La_link + link)
-    inf = Pr.extract_inf_from_js(page)
+    raw_inf = Pr.extract_inf_from_js(page)
     
-    
+    inf_json =  Formatter.from_js_to_json(raw_inf)
+    1+1
