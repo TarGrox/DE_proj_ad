@@ -17,7 +17,7 @@ class Parser():
         self.xpath_to_collect_links = '//a[@class="x-product-card__link x-product-card__hit-area"]/@href'
     
     def collect_links(self, link):
-        page = RequestsClass.get_html(link)
+        page = GetHtml.get_html(link)
         links_of_product = page.xpath(self.xpath_to_collect_links)
         print('success')
         
@@ -31,26 +31,27 @@ class Parser():
         pass
 
 
-class RequestsClass():
+class GetHtml():
     def get_html(link):
         r = requests.get(link)
         #? Подумать над реализацией, если код != 200, что возвращать?
         print(r.status_code)
         return etree.HTML(r.text) if r.status_code == 200 else None
-    
-    def collect_reviews(link):
+
+class CollectReviews():
+    def get_reviews(link):
         pass
 
 # ========================================
 # Обработка страницы продукта:
 
 Pr = Parser()
-Rc = RequestsClass()
+Gh = GetHtml()
 links_of_product = Pr.collect_links('https://www.lamoda.ru/c/517/clothes-muzhskie-bryuki/')
 print(links_of_product)
 
 
 for link in links_of_product:
-    # page = Rc.get_html(link)
+    # page = Gh.get_html(link)
     print(Pr.La_link + link)
     
