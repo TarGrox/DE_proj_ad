@@ -1,4 +1,3 @@
-from base64 import encode
 import json
 import os
 
@@ -38,8 +37,13 @@ class ParserProductPage():
         raw_inf = ExtractorInfFromJS.extract_inf_from_js(page)
         inf_json =  Formatter.from_js_to_json(raw_inf)
         sku_list = ListOfRelatedProds.get_list_of_product(inf_json)
+        attrs = CollectAttrs.collect_prod_attrs(inf_json)
         
-        return print(sku_list)
+        return attrs
+    
+    def parse_page_related_prods(self, link):
+        La_link = self.La_link
+        pass
 
 
 class ExtractorInfFromJS():
@@ -51,6 +55,8 @@ class ExtractorInfFromJS():
         # нужный нам <script> первый
         inf = page.xpath(cls.xpath_to_collect_js)
         return inf[0].text
+    #TODO: если extract_inf_from_js не найдет нужный <script>,
+    #TODO: создать и второй метод, перебирающий все <script> с поиском по контексту
 
 
 class ListOfRelatedProds():
@@ -88,6 +94,17 @@ class CollectReviews():
     def get_reviews(self, link):
         pass    
 
+class CollectAttrs():
+    
+    # Собирает информацию о составе, материалах и тд
+    @classmethod
+    def collect_prod_attrs(cls, inf_json):
+        attrs = dict()
+        for i in inf_json['attributes']:
+            key = i['params']['title']
+            attrs[key] = i['text']
+        
+        return attrs
 
 class Formatter():
     
@@ -117,4 +134,4 @@ Gh = GetHtml()
 links_of_product = ['/p/UN001EMLYPQ2/']
 # for link in links_of_product:
 
-PrPP.parse_page('/p/UN001EMLYPQ2/')
+print(PrPP.parse_page('/p/UN001EMLYPQ2/'))
