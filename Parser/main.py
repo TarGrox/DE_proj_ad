@@ -40,8 +40,9 @@ class ParserProductPage():
         attrs = CollectAttrs.collect_prod_attrs(inf_json)
         img_list = CollectImgs.collect_prod_imgs(inf_json)
         name = CollectName.collect_name(inf_json)
+        price = CollectPrice.collect_price(inf_json)
         
-        return name
+        return price
     
     def parse_page_related_prods(self, link):
         La_link = self.La_link
@@ -126,6 +127,14 @@ class CollectName():
     def collect_name(cls, inf_json):
         
         return inf_json['brand']['model_name']
+
+
+class CollectPrice():
+    
+    @classmethod
+    def collect_price(cls, inf_json):
+        
+        return inf_json['detailed_price']['details'][0]['value']
 
 class Formatter():
     
