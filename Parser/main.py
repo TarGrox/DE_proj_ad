@@ -1,3 +1,4 @@
+from base64 import encode
 import json
 import os
 
@@ -25,6 +26,7 @@ class ParserCategory():
         #TODO: определить в каком виде получать и передавать дальше ссылку
         pass
 
+
 class ParserProductPage():
     def __init__(self):
         #? Ссылку La_link подавать с '/' в конце?
@@ -39,6 +41,8 @@ class ParserProductPage():
     
     def get_another_product():
         pass
+
+
 class GetHtml():
     def __init__(self):
         pass
@@ -52,9 +56,11 @@ class GetHtml():
         print(r.status_code)
         return etree.HTML(r.text) if r.status_code == 200 else None
 
+
 class CollectReviews():
     def get_reviews(self, link):
         pass    
+
 
 class Formatter():
     def __init__(self):
@@ -73,22 +79,35 @@ class Formatter():
         
         return json.loads(inf)
 
+
 # ========================================
 # Обработка страницы продукта:
 
 PrC = ParserCategory()
 PrPP = ParserProductPage()
 Gh = GetHtml()
-links_of_product = PrC.collect_links('https://www.lamoda.ru/c/517/clothes-muzhskie-bryuki/')
+# links_of_product = PrC.collect_links('https://www.lamoda.ru/c/517/clothes-muzhskie-bryuki/')
 # print(links_of_product)
 
+links_of_product = ['/p/UN001EMLYPQ2/']
 for link in links_of_product:
     page = Gh.get_html(PrPP.La_link + link)
     print(PrPP.La_link + link)
     raw_inf = PrPP.extract_inf_from_js(page)
     
     inf_json =  Formatter.from_js_to_json(raw_inf)
+    print(inf_json['related_products'])
     # print(inf_json)
     # прямо сейчас необходимо собрать все дополнительные варианты с одной странице.
     # некоторые страницы хранят два варианта расцветки, например
+    
+    sku_list = []
+    # inf_json -> list of related_product -> get_html each -> extract_inf_from_js 
+    print(inf_json['related_products'][0]['sku']) # для вывода одного сопутствующего товара
+    for i in inf_json['related_products']:
+        sku_list.append(i['sku'])
+    print(sku_list)
+    #TODO: вытащить все сопутствующие товары из нынешний страницы
+    #TODO: пройтись по ним
+    
     1+1
