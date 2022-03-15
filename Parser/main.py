@@ -31,26 +31,53 @@ class ParserProductPage():
     def __init__(self):
         #? Ссылку La_link подавать с '/' в конце?
         self.La_link = 'https://www.lamoda.ru'
-        self.xpath_to_collect_js = '//body/script[not(@id) and not(@class) and not(@crossorigin) and not(@type) and not(@src)]'
     
-    def extract_inf_from_js(self, page):
+    def parse_page(self, link):
+        La_link = self.La_link
+        page = GetHtml.get_html(La_link + link)
+        raw_inf = ExtractorInfFromJS.extract_inf_from_js(page)
+        inf_json =  Formatter.from_js_to_json(raw_inf)
+        sku_list = ListOfRelatedProds.get_list_of_product(inf_json)
+        
+        return print(sku_list)
+
+
+class ExtractorInfFromJS():
+    xpath_to_collect_js = '//body/script[not(@id) and not(@class) and not(@crossorigin) and not(@type) and not(@src)]'
+    
+    @classmethod
+    def extract_inf_from_js(cls, page):
         # поиск всех <script> без каких-либо тегов
         # нужный нам <script> первый
-        inf = page.xpath(self.xpath_to_collect_js)
+        inf = page.xpath(cls.xpath_to_collect_js)
         return inf[0].text
+
+
+class ListOfRelatedProds():
     
-    def get_another_product():
-        pass
+    @classmethod
+    def get_list_of_product(cls, inf_json):
+        sku_list = []
+        # inf_json -> list of related_product -> get_html each -> extract_inf_from_js 
+        for i in inf_json['related_products']:
+            sku_list.append(i['sku'])
+        return sku_list
 
 
-class GetHtml():
+class ConrollerOfPrPP():
     def __init__(self):
         pass
+    
+    def page_processing():
+        # 
+        pass
+
+class GetHtml():
     
     #* Обрати внимание, что можно поставить @classmethod, а можно 
     #* добавить () {пример: GetHtml().get_html(link)} - и работать будет
     @classmethod
-    def get_html(self, link):
+    def get_html(cls, link):
         r = requests.get(link)
         #? Подумать над реализацией, если код != 200, что возвращать?
         print(r.status_code)
@@ -63,11 +90,9 @@ class CollectReviews():
 
 
 class Formatter():
-    def __init__(self):
-        pass
     
     @classmethod
-    def from_js_to_json(self, script):
+    def from_js_to_json(cls, script):
         #* необходимо привести JS <script> к удобоваримому виду - если выкинуть явные куски JS кода,
         #* то можно преобразовать оставшееся в json без ошибок.
         #* Работаем с <script> как с текстом, находим нужный кусок информации через .find - он содержит вид dict.
@@ -90,24 +115,6 @@ Gh = GetHtml()
 # print(links_of_product)
 
 links_of_product = ['/p/UN001EMLYPQ2/']
-for link in links_of_product:
-    page = Gh.get_html(PrPP.La_link + link)
-    print(PrPP.La_link + link)
-    raw_inf = PrPP.extract_inf_from_js(page)
-    
-    inf_json =  Formatter.from_js_to_json(raw_inf)
-    print(inf_json['related_products'])
-    # print(inf_json)
-    # прямо сейчас необходимо собрать все дополнительные варианты с одной странице.
-    # некоторые страницы хранят два варианта расцветки, например
-    
-    sku_list = []
-    # inf_json -> list of related_product -> get_html each -> extract_inf_from_js 
-    print(inf_json['related_products'][0]['sku']) # для вывода одного сопутствующего товара
-    for i in inf_json['related_products']:
-        sku_list.append(i['sku'])
-    print(sku_list)
-    #TODO: вытащить все сопутствующие товары из нынешний страницы
-    #TODO: пройтись по ним
-    
-    1+1
+# for link in links_of_product:
+
+PrPP.parse_page('/p/UN001EMLYPQ2/')
