@@ -42,8 +42,9 @@ class ParserProductPage():
         name = CollectName.collect_name(inf_json)
         brand_name = CollectBrandName.collect_brand_name(inf_json)
         price = CollectPrice.collect_price(inf_json)
+        size = CollectSize.collect_size(inf_json)
         
-        return price
+        return size
     
     def parse_page_related_prods(self, link):
         La_link = self.La_link
@@ -91,16 +92,19 @@ class GetHtml():
         r = requests.get(link)
         #? Подумать над реализацией, если код != 200, что возвращать?
         print(r.status_code)
-        return etree.HTML(r.text) if r.status_code == 200 else None
+        return etree.HTML(r.text) if r.status_code == 200 else None    
 
+#! Переписать?
+class GetHtmlRelatedProds(GetHtml):
+    La_link = 'https://www.lamoda.ru/p'
 
 class CollectReviews():
     def get_reviews(self, link):
         pass    
 
 class CollectAttrs():
+    """Собирает информацию о составе, материалах и тд"""
     
-    # Собирает информацию о составе, материалах и тд
     @classmethod
     def collect_prod_attrs(cls, inf_json):
         attrs = dict()
@@ -132,7 +136,7 @@ class CollectName():
 class CollectBrandName():
     
     @classmethod
-    def collect_brand_name(cls, inf_json)
+    def collect_brand_name(cls, inf_json):
         return inf_json['brand']['name']
     
 
@@ -144,15 +148,25 @@ class CollectPrice():
         return inf_json['detailed_price']['details'][0]['value']
 
 class CollectSize():
-    need = ['is_available','brand_size','size']
+    """Перебирает все sizes по нужным ключам, возвращает dict вида:
+    {0: {'is_available': True, 'brand_size': 'S', 'size': '46/48'}, 1: {'is_available': True,..."""
     
-    #TODO: определить какую информацию выводить
+    right_keys = ['is_available','brand_size','size']
+    
+    #TODO: определить как выводить информацию
     @classmethod
     def collect_size(cls, inf_json):
-        need = cls.need
+        right_keys = cls.right_keys
+        
+        out = {}
+        for pos, sizes in enumerate(inf_json['sizes']):
+            keys = sizes.keys() and right_keys
+            out[pos] = {}
+            for key in keys:
+                out[pos][key] = sizes[key]
         
         
-        return size
+        return out
 
 class Formatter():
     
