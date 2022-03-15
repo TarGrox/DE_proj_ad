@@ -38,8 +38,9 @@ class ParserProductPage():
         inf_json =  Formatter.from_js_to_json(raw_inf)
         sku_list = ListOfRelatedProds.get_list_of_product(inf_json)
         attrs = CollectAttrs.collect_prod_attrs(inf_json)
+        img_list = CollectImgs.collect_prod_imgs(inf_json)
         
-        return attrs
+        return img_list
     
     def parse_page_related_prods(self, link):
         La_link = self.La_link
@@ -105,6 +106,19 @@ class CollectAttrs():
             attrs[key] = i['text']
         
         return attrs
+
+class CollectImgs():
+    La_link = 'https://a.lmcdn.ru/img600x866'
+    
+    @classmethod
+    def collect_prod_imgs(cls, inf_json):
+        img_list = list()
+        
+        for i in inf_json['media']['images']:
+            img_list.append(cls.La_link + i['src'])
+        
+        return img_list
+    
 
 class Formatter():
     
