@@ -36,11 +36,12 @@ class ParserProductPage():
         page = GetHtml.get_html(La_link + link)
         raw_inf = ExtractorInfFromJS.extract_inf_from_js(page)
         inf_json =  Formatter.from_js_to_json(raw_inf)
-        sku_list = ListOfRelatedProds.get_list_of_product(inf_json)
+        sku_list = ListOfRelatedProds.collect_list_of_product(inf_json) # sku - уникальные имена сопутствующих товаров со странцы
         attrs = CollectAttrs.collect_prod_attrs(inf_json)
         img_list = CollectImgs.collect_prod_imgs(inf_json)
+        name = CollectName.collect_name(inf_json)
         
-        return img_list
+        return name
     
     def parse_page_related_prods(self, link):
         La_link = self.La_link
@@ -63,7 +64,7 @@ class ExtractorInfFromJS():
 class ListOfRelatedProds():
     
     @classmethod
-    def get_list_of_product(cls, inf_json):
+    def collect_list_of_product(cls, inf_json):
         sku_list = []
         # inf_json -> list of related_product -> get_html each -> extract_inf_from_js 
         for i in inf_json['related_products']:
@@ -118,7 +119,13 @@ class CollectImgs():
             img_list.append(cls.La_link + i['src'])
         
         return img_list
+
+class CollectName():
     
+    @classmethod
+    def collect_name(cls, inf_json):
+        
+        return inf_json['brand']['model_name']
 
 class Formatter():
     
