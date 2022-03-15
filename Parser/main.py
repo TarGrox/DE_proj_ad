@@ -40,6 +40,7 @@ class ParserProductPage():
         attrs = CollectAttrs.collect_prod_attrs(inf_json)
         img_list = CollectImgs.collect_prod_imgs(inf_json)
         name = CollectName.collect_name(inf_json)
+        brand_name = CollectBrandName.collect_brand_name(inf_json)
         price = CollectPrice.collect_price(inf_json)
         
         return price
@@ -128,6 +129,12 @@ class CollectName():
         
         return inf_json['brand']['model_name']
 
+class CollectBrandName():
+    
+    @classmethod
+    def collect_brand_name(cls, inf_json)
+        return inf_json['brand']['name']
+    
 
 class CollectPrice():
     
@@ -135,6 +142,17 @@ class CollectPrice():
     def collect_price(cls, inf_json):
         
         return inf_json['detailed_price']['details'][0]['value']
+
+class CollectSize():
+    need = ['is_available','brand_size','size']
+    
+    #TODO: определить какую информацию выводить
+    @classmethod
+    def collect_size(cls, inf_json):
+        need = cls.need
+        
+        
+        return size
 
 class Formatter():
     
