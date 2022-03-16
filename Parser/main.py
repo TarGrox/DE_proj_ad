@@ -36,15 +36,16 @@ class ParserProductPage():
         page = GetHtml.get_html(La_link + link)
         raw_inf = ExtractorInfFromJS.extract_inf_from_js(page)
         inf_json =  Formatter.from_js_to_json(raw_inf)
-        sku_list = ListOfRelatedProds.collect_list_of_product(inf_json) # sku - уникальные имена сопутствующих товаров со странцы
+        sku_list = ListOfRelatedProds.collect_list_of_product(inf_json) # sku - уникальные имена сопутствующих товаров со страницы
         attrs = CollectAttrs.collect_prod_attrs(inf_json)
         img_list = CollectImgs.collect_prod_imgs(inf_json)
         name = CollectName.collect_name(inf_json)
         brand_name = CollectBrandName.collect_brand_name(inf_json)
-        price = CollectPrice.collect_price(inf_json)
+        # price = CollectPrice.collect_price(inf_json)
+        price = CollectPriceWoSale().collect_price(inf_json)
         size = CollectSize.collect_size(inf_json)
         
-        return size
+        return price
     
     def parse_page_related_prods(self, link):
         La_link = self.La_link
@@ -85,8 +86,7 @@ class ConrollerOfPrPP():
 
 class GetHtml():
     
-    #* Обрати внимание, что можно поставить @classmethod, а можно 
-    #* добавить () {пример: GetHtml().get_html(link)} - и работать будет
+    #! Добавить обработчик, если приходит r.status code != 200
     @classmethod
     def get_html(cls, link):
         r = requests.get(link)
@@ -126,26 +126,42 @@ class CollectImgs():
         
         return img_list
 
-class CollectName():
+class CollectNameScheme():
     
     @classmethod
     def collect_name(cls, inf_json):
-        
-        return inf_json['brand']['model_name']
+        return inf_json['brand'][cls.name_type]
 
+class CollectName():
+    name_type = 'model_name'
 class CollectBrandName():
-    
-    @classmethod
-    def collect_brand_name(cls, inf_json):
-        return inf_json['brand']['name']
-    
+    name_type = 'name'
 
 class CollectPrice():
     
     @classmethod
-    def collect_price(cls, inf_json):
+    def collect_price(cls, inf_json, i):
         
-        return inf_json['detailed_price']['details'][0]['value']
+        # i = 0 - full price, i = 1 - price with sale
+        return inf_json['detailed_price']['details'][i]['value']
+    
+    # определять, продается товар со скидкой или нет
+    # если да, собирать две цены, делать из них кортеж
+    @classmethod
+    def get_len(cls, inf_json):
+        pass
+
+class CollectPriceScheme():
+    
+    @classmethod
+    def collect_price(cls, inf_json):
+        return inf_json['detailed_price']['details'][cls.i]['value']    
+
+class CollectPriceWoSale(CollectPriceScheme):
+    i = 0       
+
+class CollectPriceWSale(CollectPriceScheme):
+    i = 1
 
 class CollectSize():
     """Перебирает все sizes по нужным ключам, возвращает dict вида:
@@ -164,7 +180,6 @@ class CollectSize():
             out[pos] = {}
             for key in keys:
                 out[pos][key] = sizes[key]
-        
         
         return out
 
