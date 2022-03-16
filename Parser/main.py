@@ -36,17 +36,15 @@ class ParserProductPage():
         page = GetHtml.get_html(La_link + link)
         raw_inf = ExtractorInfFromJS.extract_inf_from_js(page)
         inf_json =  Formatter.from_js_to_json(raw_inf)
-        sku_list = ListOfRelatedProds.collect_list_of_product(inf_json) # sku - уникальные имена сопутствующих товаров со страницы
+        sku_list = TupleOfRelatedProds.collect_tuple_of_product(inf_json) # sku - уникальные имена сопутствующих товаров со страницы
         attrs = CollectAttrs.collect_prod_attrs(inf_json)
-        img_list = CollectImgs.collect_prod_imgs(inf_json)
+        img_tuple = CollectImgs.collect_prod_imgs(inf_json)
         name = CollectName.collect_name(inf_json)
-        brand_name = CollectBrandName.collect_brand_name(inf_json)
-        # price = CollectPrice.collect_price(inf_json)
-        price = CollectPriceWoSale().collect_price(inf_json)
+        brand_name = CollectBrandName.collect_name(inf_json)
+        price = CollectPrice.collect_price(inf_json)
         size = CollectSize.collect_size(inf_json)
         
         return price
-    # переписаны CollectName и CollectPrice, обновить код
     
     def parse_page_related_prods(self, link):
         La_link = self.La_link
@@ -66,15 +64,15 @@ class ExtractorInfFromJS():
     #TODO: создать и второй метод, перебирающий все <script> с поиском по контексту
 
 
-class ListOfRelatedProds():
+class TupleOfRelatedProds():
     
     @classmethod
-    def collect_list_of_product(cls, inf_json):
+    def collect_tuple_of_product(cls, inf_json):
         sku_list = []
         # inf_json -> list of related_product -> get_html each -> extract_inf_from_js 
         for i in inf_json['related_products']:
             sku_list.append(i['sku'])
-        return sku_list
+        return tuple(sku_list)
 
 
 class ConrollerOfPrPP():
@@ -125,7 +123,7 @@ class CollectImgs():
         for i in inf_json['media']['images']:
             img_list.append(cls.La_link + i['src'])
         
-        return img_list
+        return tuple(img_list)
 
 class CollectNameScheme():
     
@@ -133,14 +131,17 @@ class CollectNameScheme():
     def collect_name(cls, inf_json):
         return inf_json['brand'][cls.name_type]
 
-class CollectName():
+class CollectName(CollectNameScheme):
     name_type = 'model_name'
-class CollectBrandName():
+class CollectBrandName(CollectNameScheme):
     name_type = 'name'
 
 class CollectPrice():
     """Собирает цену продукта - full_price и price_w/_sale в виде tuple.
-    Если скидка отсутствует, то выводит tuple(full_price, None)"""
+    if sale:
+        tuple(full_price, price_w_sale)
+    else:
+        tuple(full_price, None)"""
     
     @classmethod
     def collect_price(cls, inf_json):
