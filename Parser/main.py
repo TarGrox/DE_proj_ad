@@ -46,6 +46,7 @@ class ParserProductPage():
         size = CollectSize.collect_size(inf_json)
         
         return price
+    # переписаны CollectName и CollectPrice, обновить код
     
     def parse_page_related_prods(self, link):
         La_link = self.La_link
@@ -138,18 +139,26 @@ class CollectBrandName():
     name_type = 'name'
 
 class CollectPrice():
+    """Собирает цену продукта - full_price и price_w/_sale в виде tuple.
+    Если скидка отсутствует, то выводит tuple(full_price, None)"""
     
     @classmethod
-    def collect_price(cls, inf_json, i):
+    def collect_price(cls, inf_json):
+        # определять, продается товар со скидкой или нет
+        # если да, собирать две цены, делать из них кортеж
+        types_of_price = cls.get_len(inf_json)
+        if types_of_price == 1:
+            return tuple(CollectPriceWoSale.collect_price(inf_json), None)
+        if types_of_price == 2:
+            return tuple(CollectPriceWoSale.collect_price(inf_json), CollectPriceWSale.collect_price(inf_json))
+        else:
+            print(f'Some error in {cls}')
         
-        # i = 0 - full price, i = 1 - price with sale
-        return inf_json['detailed_price']['details'][i]['value']
+    @staticmethod
+    def get_len(inf_json):
+        return len(inf_json['detailed_price']['details'])
     
-    # определять, продается товар со скидкой или нет
-    # если да, собирать две цены, делать из них кортеж
-    @classmethod
-    def get_len(cls, inf_json):
-        pass
+    # def 
 
 class CollectPriceScheme():
     
