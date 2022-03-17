@@ -35,7 +35,9 @@ class ParserProductPage():
         La_link = self.La_link
         page = GetHtml.get_html(La_link + link)
         raw_inf = ExtractorInfFromJS.extract_inf_from_js(page)
+        del page
         inf_json =  Formatter.from_js_to_json(raw_inf)
+        del raw_inf
         sku_list = TupleOfRelatedProds.collect_tuple_of_product(inf_json) # sku - уникальные имена сопутствующих товаров со страницы
         attrs = CollectAttrs.collect_prod_attrs(inf_json)
         img_tuple = CollectImgs.collect_prod_imgs(inf_json)
