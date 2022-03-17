@@ -46,7 +46,7 @@ class ParserProductPage():
         price = CollectPrice.collect_price(inf_json)
         size = CollectSize.collect_size(inf_json)
         
-        return price
+        return sku_list, attrs, img_tuple, name, brand_name, price, size
     
     def parse_page_related_prods(self, link):
         La_link = self.La_link
@@ -71,7 +71,7 @@ class TupleOfRelatedProds():
     @classmethod
     def collect_tuple_of_product(cls, inf_json):
         sku_list = []
-        # inf_json -> list of related_product -> get_html each -> extract_inf_from_js 
+        # inf_json -> list of related_product -> get_html each -> extract_inf_from_js
         for i in inf_json['related_products']:
             sku_list.append(i['sku'])
         return tuple(sku_list)
@@ -82,26 +82,70 @@ class ConrollerOfPrPP():
         pass
     
     def page_processing():
-        # 
+        #
         pass
 
 class GetHtml():
-    
     #! Добавить обработчик, если приходит r.status code != 200
     @classmethod
     def get_html(cls, link):
         r = requests.get(link)
         #? Подумать над реализацией, если код != 200, что возвращать?
         print(r.status_code)
-        return etree.HTML(r.text) if r.status_code == 200 else None    
+        print(r.reason)
+        return etree.HTML(r.text)
+
+class GetJsonReviews():
+    
+    def get_cookies(self, link):
+        pass
+    
+    def set_headers(self):
+        referer_link = 'https://www.lamoda.ru/p/' + self.sku + '/'
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:98.0) Gecko/20100101 Firefox/98.0',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'Referer': referer_link,
+            'Connection': 'keep-alive',
+        }
+        return headers
+    
+    def set_params(self):
+        params = (
+            ('sku', self.sku),
+            ('sort', 'date'),
+            ('sort_direction', 'desc'),
+            ('offset', self.offset),
+            ('limit', '5'),
+            ('only_with_photos', 'false'),
+        )
+        return params
+    
+    def set_offset(self, offset):
+        self.offset = offset
+    
+    def set_sku(self, sku):
+        """Sku example: UN001EMLYPQ1"""
+        self.sku = sku
 
 #! Переписать?
 class GetHtmlRelatedProds(GetHtml):
     La_link = 'https://www.lamoda.ru/p'
 
 class CollectReviews():
+    # url = 'https://www.lamoda.ru/api/v1/product/reviews?sku=rtlabe015303&sort=date&sort_direction=desc'
+    
     def get_reviews(self, link):
-        pass    
+        pass
+    
+    def get_total_numb_reviwes(self, link):
+        url = self.api_link + link + self.sort_settings
 
 class CollectAttrs():
     """Собирает информацию о составе, материалах и тд"""
@@ -128,7 +172,7 @@ class CollectImgs():
         return tuple(img_list)
 
 class CollectNameScheme():
-    
+
     @classmethod
     def collect_name(cls, inf_json):
         return inf_json['brand'][cls.name_type]
@@ -141,9 +185,9 @@ class CollectBrandName(CollectNameScheme):
 class CollectPrice():
     """Собирает цену продукта - full_price и price_w/_sale в виде tuple.
     if sale:
-        tuple(full_price, price_w_sale)
+        ( full_price, price_w_sale )
     else:
-        tuple(full_price, None)"""
+        ( full_price, None )"""
     
     @classmethod
     def collect_price(cls, inf_json):
@@ -151,9 +195,9 @@ class CollectPrice():
         # если да, собирать две цены, делать из них кортеж
         types_of_price = cls.get_len(inf_json)
         if types_of_price == 1:
-            return tuple(CollectPriceWoSale.collect_price(inf_json), None)
+            return ( CollectPriceWoSale.collect_price(inf_json), None )
         if types_of_price == 2:
-            return tuple(CollectPriceWoSale.collect_price(inf_json), CollectPriceWSale.collect_price(inf_json))
+            return ( CollectPriceWoSale.collect_price(inf_json), CollectPriceWSale.collect_price(inf_json) )
         else:
             print(f'Some error in {cls}')
         
@@ -161,16 +205,15 @@ class CollectPrice():
     def get_len(inf_json):
         return len(inf_json['detailed_price']['details'])
     
-    # def 
 
 class CollectPriceScheme():
     
     @classmethod
     def collect_price(cls, inf_json):
-        return inf_json['detailed_price']['details'][cls.i]['value']    
+        return inf_json['detailed_price']['details'][cls.i]['value']
 
 class CollectPriceWoSale(CollectPriceScheme):
-    i = 0       
+    i = 0
 
 class CollectPriceWSale(CollectPriceScheme):
     i = 1
@@ -223,4 +266,6 @@ Gh = GetHtml()
 links_of_product = ['/p/UN001EMLYPQ2/']
 # for link in links_of_product:
 
-print(PrPP.parse_page('/p/UN001EMLYPQ2/'))
+# print(PrPP.parse_page('/p/UN001EMLYPQ2/'))
+
+print(Gh.get_html('https://www.lamoda.ru/api/v1/product/reviews?sku=MP002XM1RJVM&sort=date&sort_direction=desc&offset=10&limit=5&only_with_photos=false'))
