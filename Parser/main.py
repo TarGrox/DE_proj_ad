@@ -89,20 +89,55 @@ class GetHtml():
     #! Добавить обработчик, если приходит r.status code != 200
     @classmethod
     def get_html(cls, link):
-        r = requests.get(link)
+        r = cls.get_request(link)
         #? Подумать над реализацией, если код != 200, что возвращать?
         print(r.status_code)
         print(r.reason)
         return etree.HTML(r.text)
-
-class GetJsonReviews():
     
-    def get_cookies(self, link):
-        pass
+    @classmethod
+    def get_request(cls, link):
+        r = requests.get(link)
+# Разбил GetHtml() на несколько классов, которые потом можно будет собрать воедино
+# или использовать в других местах. Например - работа с API/comments Lamodы
+# сейчас нужно пересобрать GetHtml()
+# Плюс распихать по разным файлам классы, а то уже слишком сложно разбираться в проекте.
+
+
+class GetResponse():
+    @staticmethod
+    def get_response(link):
+        r = requests.get(link)
+
+class ResponseHendler():
+    """Обрабатывает ответ от GetResponse()
+    Если r.status_code != 200, то логировать в файл"""
+    pass 
+
+
+class GetTextFromResponse():
+    
+    @staticmethod
+    def response_to_text(response):
+        return etree.HTML(response.text)
+
+class GetJsonFromResponse():
+    
+    @staticmethod
+    def response_to_json(response):
+        return response.json()
+
+
+class ContainerForRequestReviews():
+    """Устанавливает cookies, params, headers
+    На вход нужно подать sku, offset"""
+    
+    def set_cookies(self, cookies):
+        self.cookies = cookies
     
     def set_headers(self):
         referer_link = 'https://www.lamoda.ru/p/' + self.sku + '/'
-        headers = {
+        self.headers = {
             'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:98.0) Gecko/20100101 Firefox/98.0',
             'Accept': 'application/json, text/plain, */*',
             'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
@@ -114,10 +149,9 @@ class GetJsonReviews():
             'Referer': referer_link,
             'Connection': 'keep-alive',
         }
-        return headers
     
     def set_params(self):
-        params = (
+        self.params = (
             ('sku', self.sku),
             ('sort', 'date'),
             ('sort_direction', 'desc'),
@@ -125,7 +159,6 @@ class GetJsonReviews():
             ('limit', '5'),
             ('only_with_photos', 'false'),
         )
-        return params
     
     def set_offset(self, offset):
         self.offset = offset
@@ -133,6 +166,10 @@ class GetJsonReviews():
     def set_sku(self, sku):
         """Sku example: UN001EMLYPQ1"""
         self.sku = sku
+
+class asdf():
+    """Выводит информацию о ContainerForRequestReviews() - cookies, params, headers"""
+    pass
 
 #! Переписать?
 class GetHtmlRelatedProds(GetHtml):
