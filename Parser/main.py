@@ -1,7 +1,6 @@
 from abc import abstractmethod
 import json
 import os
-from wsgiref import headers
 
 # Third-party
 import lxml
@@ -69,6 +68,9 @@ class ExtractorInfFromJS():
 
 
 class CollectSkuOfRelatedProds():
+    """Собирает sku (уникальные идентификаторы - почти ссылки) сопутствующих товаров с нынешней страницы
+    продукта
+    Возвращает tuple"""
     
     @classmethod
     def collect_tuple_of_product(cls, inf_json):
@@ -99,7 +101,8 @@ class GetHtml():
     
     @classmethod
     def get_request(cls, link):
-        r = requests.get(link)
+        response = requests.get(link)
+        return response
 #! Разбил GetHtml() на несколько классов, которые потом можно будет собрать воедино
 #! или использовать в других местах. Например - работа с API/comments Lamodы
 #! сейчас нужно пересобрать GetHtml()
@@ -112,12 +115,13 @@ class GetResponse():
     
     def get_response(self, link):
         response = requests.get(link)
-        self.ResponseHendler(response)
+        self.ResponseHendler.process_result(response)
         
         return response
 
 class ResultHendlerScheme():
     """Обрабатывает результат работы класса и/или метода"""
+    #TODO: Добавить метод, получающий название и путь до файла логирования
     
     @abstractmethod
     def process_result(self, obj_to_process) -> None:
@@ -131,7 +135,11 @@ class ResponseHendler_GetResponse(ResultHendlerScheme):
     def process_result(self, response):
         #TODO: Дописать логирование в файл
         if response.status_code != 200:
-            pass
+            print(response.status_code, response.reason)
+        else:
+            #! Переписать, здесь нужно записывать лог
+            print(response.status_code, response.reason)
+
 
 
 class GetTextFromResponse():
@@ -201,7 +209,7 @@ class ContainerForRequest():
 # Для работы с API/comments мне нужно:
 # 1. GetResponse()
 #   1.1 для получения первичных coockie при создании;
-#   1.2 для непосредственной работы с сайтом;
+#   1.2 для непосредственной работы с API;
 # 2. ContainerForRequest():
 #   2.1 Продумать как менять offset
 # 3. GetJsonFromResponse():
@@ -213,10 +221,28 @@ class ContainerForRequest():
 class WorkerAPIComments():
     def __init__(self, sku) -> None:
         self.GetResponse = GetResponse()
-        self.GetJsonFromResponse = GetJsonFromResponse()
         self.ContainerForRequest = ContainerForRequest()
+        self.GetJsonFromResponse = GetJsonFromResponse()
+        self.GetCookies = GetCookies()
         
+        #! Короче, не работает, инфа записывается прямо в ContainerFroRequest.set_cookies
+        # Устанавливаем cookies 
+        self.ContainerForRequest.set_cookies = self.GetCookies.get_cookies(sku)
+        1+1
     pass
+
+class GetCookies(GetResponse):
+    def __init__(self) -> None:
+        super().__init__()
+        self.La_link = 'https://www.lamoda.ru/'
+    
+    def get_cookies(self, sku):
+        La_link = self.La_link
+        response = self.get_response(La_link)
+        return response.cookies
+    
+
+
 
 #! Переписать?
 class GetHtmlRelatedProds(GetHtml):
@@ -232,7 +258,7 @@ class CollectReviews():
         url = self.api_link + link + self.sort_settings
 
 class CollectAttrs():
-    """Собирает информацию о составе, материалах и тд"""
+    """Собирает информацию о составе, материалах и тд - просто передать inf_json"""
     
     @classmethod
     def collect_prod_attrs(cls, inf_json):
@@ -353,4 +379,7 @@ links_of_product = ['/p/UN001EMLYPQ2/']
 
 # print(PrPP.parse_page('/p/UN001EMLYPQ2/'))
 
+
+Wc = WorkerAPIComments('UN001EMLYPQ2')
+1+1
 print(Gh.get_html('https://www.lamoda.ru/api/v1/product/reviews?sku=MP002XM1RJVM&sort=date&sort_direction=desc&offset=10&limit=5&only_with_photos=false'))
