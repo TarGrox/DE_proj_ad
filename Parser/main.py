@@ -1,5 +1,6 @@
 import json
 import os
+from wsgiref import headers
 
 # Third-party
 import lxml
@@ -38,7 +39,7 @@ class ParserProductPage():
         del page
         inf_json =  Formatter.from_js_to_json(raw_inf)
         del raw_inf
-        sku_list = TupleOfRelatedProds.collect_tuple_of_product(inf_json) # sku - уникальные имена сопутствующих товаров со страницы
+        sku_list = CollectSkuOfRelatedProds.collect_tuple_of_product(inf_json) # sku - уникальные имена сопутствующих товаров со страницы
         attrs = CollectAttrs.collect_prod_attrs(inf_json)
         img_tuple = CollectImgs.collect_prod_imgs(inf_json)
         name = CollectName.collect_name(inf_json)
@@ -66,7 +67,7 @@ class ExtractorInfFromJS():
     #TODO: создать и второй метод, перебирающий все <script> с поиском по контексту
 
 
-class TupleOfRelatedProds():
+class CollectSkuOfRelatedProds():
     
     @classmethod
     def collect_tuple_of_product(cls, inf_json):
@@ -98,10 +99,10 @@ class GetHtml():
     @classmethod
     def get_request(cls, link):
         r = requests.get(link)
-# Разбил GetHtml() на несколько классов, которые потом можно будет собрать воедино
-# или использовать в других местах. Например - работа с API/comments Lamodы
-# сейчас нужно пересобрать GetHtml()
-# Плюс распихать по разным файлам классы, а то уже слишком сложно разбираться в проекте.
+#! Разбил GetHtml() на несколько классов, которые потом можно будет собрать воедино
+#! или использовать в других местах. Например - работа с API/comments Lamodы
+#! сейчас нужно пересобрать GetHtml()
+#! Плюс распихать по разным файлам классы, а то уже слишком сложно разбираться в проекте.
 
 
 class GetResponse():
@@ -128,9 +129,25 @@ class GetJsonFromResponse():
         return response.json()
 
 
-class ContainerForRequestReviews():
-    """Устанавливает cookies, params, headers
+class ContainerForRequest():
+    """Устанавливает и хранит cookies, params, headers
     На вход нужно подать sku, offset"""
+    
+    def __init__(self):
+        self.offset = 5
+        self.sku = 'none'
+        self.set_headers()
+        self.set_params()
+    
+    def set_offset(self, offset):
+        """Идут с шагом 5: 5, 10, 15, 20..."""
+        self.offset = offset
+        self.set_params()
+    
+    def set_sku(self, sku):
+        """Sku example: UN001EMLYPQ1"""
+        self.sku = sku
+        self.set_headers()
     
     def set_cookies(self, cookies):
         self.cookies = cookies
@@ -159,17 +176,9 @@ class ContainerForRequestReviews():
             ('limit', '5'),
             ('only_with_photos', 'false'),
         )
-    
-    def set_offset(self, offset):
-        self.offset = offset
-    
-    def set_sku(self, sku):
-        """Sku example: UN001EMLYPQ1"""
-        self.sku = sku
 
-class asdf():
-    """Выводит информацию о ContainerForRequestReviews() - cookies, params, headers"""
-    pass
+
+
 
 #! Переписать?
 class GetHtmlRelatedProds(GetHtml):
@@ -228,14 +237,15 @@ class CollectPrice():
     
     @classmethod
     def collect_price(cls, inf_json):
-        # определять, продается товар со скидкой или нет
-        # если да, собирать две цены, делать из них кортеж
+        """определяет, продается товар со скидкой или нет
+        если да, собирать две цены, делать из них кортеж"""
         types_of_price = cls.get_len(inf_json)
         if types_of_price == 1:
             return ( CollectPriceWoSale.collect_price(inf_json), None )
         if types_of_price == 2:
             return ( CollectPriceWoSale.collect_price(inf_json), CollectPriceWSale.collect_price(inf_json) )
         else:
+            #TODO: Создать обработчик, если цена не указана
             print(f'Some error in {cls}')
         
     @staticmethod
