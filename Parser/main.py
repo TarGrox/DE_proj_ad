@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import json
 import os
 from wsgiref import headers
@@ -106,14 +107,31 @@ class GetHtml():
 
 
 class GetResponse():
-    @staticmethod
-    def get_response(link):
-        r = requests.get(link)
+    def __init__(self) -> None:
+        self.ResponseHendler = ResponseHendler_GetResponse()
+    
+    def get_response(self, link):
+        response = requests.get(link)
+        self.ResponseHendler(response)
+        
+        return response
 
-class ResponseHendler():
+class ResultHendlerScheme():
+    """Обрабатывает результат работы класса и/или метода"""
+    
+    @abstractmethod
+    def process_result(self, obj_to_process) -> None:
+        pass
+    pass
+
+class ResponseHendler_GetResponse(ResultHendlerScheme):
     """Обрабатывает ответ от GetResponse()
     Если r.status_code != 200, то логировать в файл"""
-    pass 
+    
+    def process_result(self, response):
+        #TODO: Дописать логирование в файл
+        if response.status_code != 200:
+            pass
 
 
 class GetTextFromResponse():
@@ -152,6 +170,7 @@ class ContainerForRequest():
     def set_cookies(self, cookies):
         self.cookies = cookies
     
+    # меняется только sku
     def set_headers(self):
         referer_link = 'https://www.lamoda.ru/p/' + self.sku + '/'
         self.headers = {
@@ -167,6 +186,7 @@ class ContainerForRequest():
             'Connection': 'keep-alive',
         }
     
+    # меняется и sku, и offset
     def set_params(self):
         self.params = (
             ('sku', self.sku),
@@ -178,7 +198,25 @@ class ContainerForRequest():
         )
 
 
+# Для работы с API/comments мне нужно:
+# 1. GetResponse()
+#   1.1 для получения первичных coockie при создании;
+#   1.2 для непосредственной работы с сайтом;
+# 2. ContainerForRequest():
+#   2.1 Продумать как менять offset
+# 3. GetJsonFromResponse():
+#   3.1 для перевода из response в json;
+# 4. Непосредственная работа с json:
+#   4.1 вытаскиваем дату-время, коммент, имя, оценку
+# 5. Куда и как передавать данные?
 
+class WorkerAPIComments():
+    def __init__(self, sku) -> None:
+        self.GetResponse = GetResponse()
+        self.GetJsonFromResponse = GetJsonFromResponse()
+        self.ContainerForRequest = ContainerForRequest()
+        
+    pass
 
 #! Переписать?
 class GetHtmlRelatedProds(GetHtml):
