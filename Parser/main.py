@@ -1,6 +1,7 @@
 from abc import abstractmethod
 import json
 import os
+import cProfile
 
 # Third-party
 import lxml
@@ -26,19 +27,15 @@ class ParserCategory():
         #TODO: определить в каком виде получать и передавать дальше ссылку
         pass
 
-
 class ParserProductPage():
     def __init__(self):
-        #? Ссылку La_link подавать с '/' в конце?
-        self.La_link = 'https://www.lamoda.ru'
+        self.WorkerInf = WorkerInf()
     
     def parse_page(self, link):
-        La_link = self.La_link
-        page = GetHtml.get_html(La_link + link)
-        raw_inf = ExtractorInfFromJS.extract_inf_from_js(page)
-        del page
-        inf_json =  Formatter.from_js_to_json(raw_inf)
-        del raw_inf
+        WorkerInf = self.WorkerInf
+        
+        inf_json = WorkerInf.output_inf_json(link)
+        
         sku_list = CollectSkuOfRelatedProds.collect_tuple_of_product(inf_json) # sku - уникальные имена сопутствующих товаров со страницы
         attrs = CollectAttrs.collect_prod_attrs(inf_json)
         img_tuple = CollectImgs.collect_prod_imgs(inf_json)
@@ -80,41 +77,40 @@ class CollectSkuOfRelatedProds():
             sku_list.append(i['sku'])
         return tuple(sku_list)
 
-
-class ConrollerOfPrPP():
-    def __init__(self):
-        pass
+class WorkerInf():
+    """
+    Делает запрос, получает информацию, выразает и обрабатывает её
+    Возвращает json о продукте
+    """
     
-    def page_processing():
-        #
-        pass
-
-class GetHtml():
-    #! Добавить обработчик, если приходит r.status code != 200
-    @classmethod
-    def get_html(cls, link):
-        r = cls.get_request(link)
-        #? Подумать над реализацией, если код != 200, что возвращать?
-        print(r.status_code)
-        print(r.reason)
-        return etree.HTML(r.text)
+    def __init__(self) -> None:
+        #? Ссылку La_link подавать с '/' в конце?
+        self.La_link = 'https://www.lamoda.ru'
+        self.GetResponse = GetResponse()
+        self.GetTextFromResponse = GetTextFromResponse()
     
-    @classmethod
-    def get_request(cls, link):
-        response = requests.get(link)
-        return response
-#! Разбил GetHtml() на несколько классов, которые потом можно будет собрать воедино
-#! или использовать в других местах. Например - работа с API/comments Lamodы
-#! сейчас нужно пересобрать GetHtml()
-#! Плюс распихать по разным файлам классы, а то уже слишком сложно разбираться в проекте.
-
+    def output_inf_json(self, link):
+        
+        # Переименовываем объекты нужных нам классов
+        La_link = self.La_link
+        GetResponse = self.GetResponse
+        GetTextFromResponse = self.GetTextFromResponse
+        
+        response = GetResponse.get_response(La_link+link)
+        page = GetTextFromResponse.response_to_text(response)
+        
+        raw_inf = ExtractorInfFromJS.extract_inf_from_js(page)
+        del page
+        inf_json =  Formatter.from_js_to_json(raw_inf)
+        del raw_inf
+        return inf_json
 
 class GetResponse():
     def __init__(self) -> None:
         self.ResponseHendler = ResponseHendler_GetResponse()
     
-    def get_response(self, link):
-        response = requests.get(link)
+    def get_response(self, link, headers='', params='', cookies=''):
+        response = requests.get(link, headers=headers, params=params, cookies=cookies)
         self.ResponseHendler.process_result(response)
         
         return response
@@ -157,26 +153,28 @@ class GetJsonFromResponse():
 
 class ContainerForRequest():
     """Устанавливает и хранит cookies, params, headers
-    На вход нужно подать sku, offset"""
+    На вход нужно подать sku, offset
+    Порядок инициализации: sku, offset, cookies"""
     
     def __init__(self):
         self.offset = 5
         self.sku = 'none'
+        self.cookies = []
         self.set_headers()
         self.set_params()
-    
-    def set_offset(self, offset):
-        """Идут с шагом 5: 5, 10, 15, 20..."""
-        self.offset = offset
-        self.set_params()
+        
     
     def set_sku(self, sku):
-        """Sku example: UN001EMLYPQ1"""
+        """
+        Обновляет sku и headers
+        Sku example: UN001EMLYPQ1
+        """
         self.sku = sku
         self.set_headers()
     
     def set_cookies(self, cookies):
         self.cookies = cookies
+        1+1
     
     # меняется только sku
     def set_headers(self):
@@ -204,6 +202,10 @@ class ContainerForRequest():
             ('limit', '5'),
             ('only_with_photos', 'false'),
         )
+    
+    def move_offset(self):
+        self.offset += 5
+        self.set_params()
 
 
 # Для работы с API/comments мне нужно:
@@ -220,25 +222,47 @@ class ContainerForRequest():
 
 class WorkerAPIComments():
     def __init__(self, sku) -> None:
-        self.GetResponse = GetResponse()
-        self.ContainerForRequest = ContainerForRequest()
-        self.GetJsonFromResponse = GetJsonFromResponse()
-        self.GetCookies = GetCookies()
+        self.GR = GetResponse()
+        self.CFR = ContainerForRequest()
+        self.GJFR = GetJsonFromResponse()
+        self.GC = GetCookies()
         
-        #! Короче, не работает, инфа записывается прямо в ContainerFroRequest.set_cookies
-        # Устанавливаем cookies 
-        self.ContainerForRequest.set_cookies = self.GetCookies.get_cookies(sku)
+        # self.work()
+        
+        # Устанавливаем sku, params, headers, cookies
+        self.CFR.set_sku(sku) # обновились headers
+        self.CFR.set_params()
+        self.CFR.set_cookies( self.GC.get_cookies(sku) )
+        
+        
+        
+        # self.collect_inf()
         1+1
-    pass
+        
+    def collect_inf(self):
+        """
+        Непосредственно собирает информацию
+        """
+        # Rcsdf = GetResponse1()
+        # sdf = Rcsdf.get_response('https://www.lamoda.ru/p/un001emlypq1/', self.CFR.headers, self.CFR.params, self.CFR.cookies)
+        # sdf1 = Rcsdf.get_response('https://www.lamoda.ru/p/un001emlypq1/', '', '', '')
+        # 1+1
+        pass
+    
+    def process(self):
+        """
+        Именно этот метод будет вызываться
+        """
+        pass
 
 class GetCookies(GetResponse):
     def __init__(self) -> None:
         super().__init__()
-        self.La_link = 'https://www.lamoda.ru/'
+        self.La_link = 'https://www.lamoda.ru/p/'
     
     def get_cookies(self, sku):
         La_link = self.La_link
-        response = self.get_response(La_link)
+        response = self.get_response(La_link + sku)
         return response.cookies
     
 
@@ -379,7 +403,8 @@ links_of_product = ['/p/UN001EMLYPQ2/']
 
 # print(PrPP.parse_page('/p/UN001EMLYPQ2/'))
 
-
-Wc = WorkerAPIComments('UN001EMLYPQ2')
+# Wc = WorkerAPIComments('UN001EMLYPQ2')
+PrPP1 = ParserProductPage()
+print(PrPP1.parse_page('/p/UN001EMLYPQ2/'))
 1+1
-print(Gh.get_html('https://www.lamoda.ru/api/v1/product/reviews?sku=MP002XM1RJVM&sort=date&sort_direction=desc&offset=10&limit=5&only_with_photos=false'))
+# print(Gh.get_html('https://www.lamoda.ru/api/v1/product/reviews?sku=MP002XM1RJVM&sort=date&sort_direction=desc&offset=10&limit=5&only_with_photos=false'))
