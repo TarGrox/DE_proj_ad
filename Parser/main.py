@@ -16,27 +16,46 @@ class ParserCategory():
         #? .collect_links, если что, возвращает ссылки с '/' в начале
         self.La_link = 'https://www.lamoda.ru'
         self.xpath_to_collect_links = '//a[@class="x-product-card__link x-product-card__hit-area"]/@href'
+        
+        self.ProcessPageToText = ProcessPageToText()
     
     def collect_links(self, link):
-        page = GetHtml.get_html(link)
+        
+        ProcessPageToText = self.ProcessPageToText
+        
+        page = ProcessPageToText.output_inf_in_text(link)
+        
         links_of_product = page.xpath(self.xpath_to_collect_links)
         print('success')
+        
         return links_of_product
     
-    def get_next_link(link):
+    def get_next_link(self, page):
         #TODO: определить в каком виде получать и передавать дальше ссылку
+        # return link_to_next_page
         pass
 
 class ParserProductPage():
     def __init__(self):
-        self.WorkerInf = WorkerInf()
+        self.ProcessPageToText = ProcessPageToText()
+        self.ProcessInf = ProcessInf()
+        self.sku_tuple = ()
+        self.La_link = 'https://www.lamoda.ru'
+
     
     def parse_page(self, link):
-        WorkerInf = self.WorkerInf
+        ProcessPageToText = self.ProcessPageToText
+        La_link = self.La_link
         
-        inf_json = WorkerInf.output_inf_json(link)
+        page = ProcessPageToText.output_inf_in_text(La_link + link)
+        raw_inf = ExtractorInfFromJS.extract_inf_from_js(page)
+        del page
         
-        sku_list = CollectSkuOfRelatedProds.collect_tuple_of_product(inf_json) # sku - уникальные имена сопутствующих товаров со страницы
+        inf_json =  Formatter.from_js_to_json(raw_inf)
+        del raw_inf
+        
+        
+        sku_tuple = CollectSkuOfRelatedProds.collect_tuple_of_product(inf_json) # sku - уникальные имена сопутствующих товаров со страницы
         attrs = CollectAttrs.collect_prod_attrs(inf_json)
         img_tuple = CollectImgs.collect_prod_imgs(inf_json)
         name = CollectName.collect_name(inf_json)
@@ -44,7 +63,12 @@ class ParserProductPage():
         price = CollectPrice.collect_price(inf_json)
         size = CollectSize.collect_size(inf_json)
         
-        return sku_list, attrs, img_tuple, name, brand_name, price, size
+        #TODO: объявить эту переменную
+        self.sku_tuple = sku_tuple
+        
+        print(name, brand_name, price, attrs, img_tuple, size, sku_tuple, sep='\n')
+        
+        return sku_tuple, attrs, img_tuple, name, brand_name, price, size
     
     def parse_page_related_prods(self, link):
         La_link = self.La_link
@@ -77,10 +101,10 @@ class CollectSkuOfRelatedProds():
             sku_list.append(i['sku'])
         return tuple(sku_list)
 
-class WorkerInf():
+class ProcessPageToText():
     """
     Делает запрос, получает информацию, выразает и обрабатывает её
-    Возвращает json о продукте
+    Возвращает text о продукте
     """
     
     def __init__(self) -> None:
@@ -89,21 +113,66 @@ class WorkerInf():
         self.GetResponse = GetResponse()
         self.GetTextFromResponse = GetTextFromResponse()
     
-    def output_inf_json(self, link):
+    def output_inf_in_text(self, link):
         
         # Переименовываем объекты нужных нам классов
         La_link = self.La_link
         GetResponse = self.GetResponse
         GetTextFromResponse = self.GetTextFromResponse
         
-        response = GetResponse.get_response(La_link+link)
+        response = GetResponse.get_response(link)
         page = GetTextFromResponse.response_to_text(response)
+        return page
+
+class ProcessPageToJson():
+    """
+    Делает запрос, получает информацию, выразает и обрабатывает её
+    Возвращает text о продукте
+    """
+    
+    def __init__(self) -> None:
+        #? Ссылку La_link подавать с '/' в конце?
+        self.La_link = 'https://www.lamoda.ru'
+        self.GetResponse = GetResponse()
+    
+    def output_inf_in_json(self, link, headers='', params='', cookies=''):
         
-        raw_inf = ExtractorInfFromJS.extract_inf_from_js(page)
-        del page
-        inf_json =  Formatter.from_js_to_json(raw_inf)
-        del raw_inf
-        return inf_json
+        # Переименовываем объекты нужных нам классов
+        La_link = self.La_link
+        GetResponse = self.GetResponse
+        
+        response = GetResponse.get_response(link, headers, params, cookies)
+        page = GetJsonFromResponse.response_to_json(response)
+        return page
+
+
+class ProcessInf():
+    def __init__(self) -> None:
+        self.ContainerInfProd = ContainerInfProd()
+    
+    def process_inf(self, inf_json):
+        """
+        sku_list;
+        attrs;
+        img_tuple;
+        name;
+        brand_name;
+        price;
+        size;
+        """
+        
+        sku_list = CollectSkuOfRelatedProds.collect_tuple_of_product(inf_json) # sku - уникальные имена сопутствующих товаров со страницы
+        attrs = CollectAttrs.collect_prod_attrs(inf_json)
+        img_tuple = CollectImgs.collect_prod_imgs(inf_json)
+        name = CollectName.collect_name(inf_json)
+        brand_name = CollectBrandName.collect_name(inf_json)
+        price = CollectPrice.collect_price(inf_json)
+        size = CollectSize.collect_size(inf_json)
+
+class ContainerInfProd():
+    def __init__(self) -> None:
+        pass
+
 
 class GetResponse():
     def __init__(self) -> None:
@@ -157,7 +226,7 @@ class ContainerForRequest():
     Порядок инициализации: sku, offset, cookies"""
     
     def __init__(self):
-        self.offset = 5
+        self.offset = 0
         self.sku = 'none'
         self.cookies = []
         self.set_headers()
@@ -226,33 +295,45 @@ class WorkerAPIComments():
         self.CFR = ContainerForRequest()
         self.GJFR = GetJsonFromResponse()
         self.GC = GetCookies()
+        self.ProcessPageToJson = ProcessPageToJson()
         
-        # self.work()
         
         # Устанавливаем sku, params, headers, cookies
         self.CFR.set_sku(sku) # обновились headers
         self.CFR.set_params()
         self.CFR.set_cookies( self.GC.get_cookies(sku) )
         
+        #
+        self.api_link = 'https://www.lamoda.ru/api/v1/product/reviews'
+        self.total_num = self.process()['total']
         
+        if self.total_num == 0:
+            return
+        self.loop()
         
-        # self.collect_inf()
-        1+1
-        
-    def collect_inf(self):
-        """
-        Непосредственно собирает информацию
-        """
-        # Rcsdf = GetResponse1()
-        # sdf = Rcsdf.get_response('https://www.lamoda.ru/p/un001emlypq1/', self.CFR.headers, self.CFR.params, self.CFR.cookies)
-        # sdf1 = Rcsdf.get_response('https://www.lamoda.ru/p/un001emlypq1/', '', '', '')
-        # 1+1
-        pass
+        print('hello')
     
     def process(self):
-        """
-        Именно этот метод будет вызываться
-        """
+        
+        r_json = self.ProcessPageToJson.output_inf_in_json(self.api_link, headers=self.CFR.headers,\
+            params=self.CFR.params,\
+                cookies=self.CFR.cookies)
+        # print(r_json['reviews'])
+        return r_json
+    
+    def loop(self):
+        
+        for i in range( (self.total_num // 5) + 1  ):
+            r_json = self.process()
+            
+            self.export(r_json)
+            
+            self.CFR.move_offset()
+    
+    def export(self, r_json):
+        # print(len(r_json['reviews']))
+        # print(r_json['reviews'])
+        
         pass
 
 class GetCookies(GetResponse):
@@ -265,12 +346,6 @@ class GetCookies(GetResponse):
         response = self.get_response(La_link + sku)
         return response.cookies
     
-
-
-
-#! Переписать?
-class GetHtmlRelatedProds(GetHtml):
-    La_link = 'https://www.lamoda.ru/p'
 
 class CollectReviews():
     # url = 'https://www.lamoda.ru/api/v1/product/reviews?sku=rtlabe015303&sort=date&sort_direction=desc'
@@ -390,21 +465,34 @@ class Formatter():
 
 
 # ========================================
-# Обработка страницы продукта:
 
-PrC = ParserCategory()
-PrPP = ParserProductPage()
-Gh = GetHtml()
-# links_of_product = PrC.collect_links('https://www.lamoda.ru/c/517/clothes-muzhskie-bryuki/')
-# print(links_of_product)
+sku_1 = 'mp002xm1k3hy'.upper()
+WAPI = WorkerAPIComments(sku_1)
+WAPI.process()
 
-links_of_product = ['/p/UN001EMLYPQ2/']
-# for link in links_of_product:
+print('hello')
+print('hello')
+ParserCategory_obj = ParserCategory()
+link = 'sdf' #TODO: перенести эту строку вконец
+link = 'https://www.lamoda.ru/c/477/'
+links = ParserCategory_obj.collect_links(link)
+# next_link = ParserCategory_obj.get_next_link(link) #TODO: дописать этот метод
 
-# print(PrPP.parse_page('/p/UN001EMLYPQ2/'))
-
-# Wc = WorkerAPIComments('UN001EMLYPQ2')
-PrPP1 = ParserProductPage()
-print(PrPP1.parse_page('/p/UN001EMLYPQ2/'))
-1+1
-# print(Gh.get_html('https://www.lamoda.ru/api/v1/product/reviews?sku=MP002XM1RJVM&sort=date&sort_direction=desc&offset=10&limit=5&only_with_photos=false'))
+del ParserCategory_obj
+for link in links:
+    ParserProductPage_origin = ParserProductPage()
+    ParserProductPage_origin.parse_page(link)
+    
+    sku_rel_prods = ParserProductPage_origin.sku_tuple
+    
+    del ParserProductPage_origin
+    for sku in sku_rel_prods:
+        line = '=============' 
+        print(line, line, line, line, line, sep='\n')
+        ParserProductPage_related = ParserProductPage()
+        link_rel_prods = '/p/' + sku
+        ParserProductPage_related.parse_page(link_rel_prods)
+        print(line, line, line, line, line, sep='\n')
+        
+        del ParserProductPage_related
+        pass
